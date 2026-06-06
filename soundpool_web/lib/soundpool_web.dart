@@ -64,6 +64,7 @@ class SoundpoolPlugin extends SoundpoolPlatform {
   @override
   Future<int> play(int poolId, int soundId, int repeat, double rate) async {
     _AudioContextWrapper wrapper = _pool[poolId]!;
+    //print("wrapper.audioContext.state : ${wrapper.audioContext.state}");
     return await wrapper.play(soundId, rate: rate, repeat: repeat);
   }
 
@@ -142,6 +143,7 @@ class _AudioContextWrapper {
     _lastPlayedStreamId = _lastPlayedStreamId + 1;
     var streamId = _lastPlayedStreamId;
     var subscription = sampleSource.onEnded.listen((_) {
+      print("sound Id ${soundId} ended");
       var audioWrapper = _playedAudioCache.remove(streamId);
       audioWrapper?.subscription?.cancel();
     });
@@ -172,18 +174,21 @@ class _AudioContextWrapper {
     _CachedAudioSettings? cachedAudio = _cache[soundId];
     if (volumeLeft != null) cachedAudio?.volumeLeft = volumeLeft;
     if (volumeRight != null) cachedAudio?.volumeRight = volumeRight;
-    _playedAudioCache.values.where((pw) => pw.soundId == soundId).forEach((playingWrapper) {
-      playingWrapper.gainNode.gain?.value = volumeLeft;
-    });
+    // _playedAudioCache.values.where((pw) => pw.soundId == soundId).forEach((playingWrapper) {
+    //   playingWrapper.gainNode.gain?.exponentialRampToValueAtTime(volumeLeft!, 0.5);
+    // });
   }
 
   Future<void> setStreamVolume(int streamId, double? volumeLeft, double? volumeRight) async {
     _PlayingAudioWrapper? playingWrapper = _playedAudioCache[streamId];
     if (playingWrapper != null) {
-      playingWrapper.gainNode.gain?.value = volumeLeft;
-      _CachedAudioSettings? cachedAudio = _cache[playingWrapper.soundId];
-      if (volumeLeft != null) cachedAudio?.volumeLeft = volumeLeft;
-      if (volumeRight != null) cachedAudio?.volumeRight = volumeRight;
+
+      //print("game nodevalue is ${playingWrapper.gainNode.gain?.value}");
+      playingWrapper.gainNode.gain?.setValueAtTime(playingWrapper.gainNode!.gain!.value!, audioContext!.currentTime!);
+      playingWrapper.gainNode.gain?.exponentialRampToValueAtTime(volumeLeft!, audioContext!.currentTime! + 0.5);
+      // _CachedAudioSettings? cachedAudio = _cache[playingWrapper.soundId];
+      // if (volumeLeft != null) cachedAudio?.volumeLeft = volumeLeft;
+      // if (volumeRight != null) cachedAudio?.volumeRight = volumeRight;
     }
   }
 
